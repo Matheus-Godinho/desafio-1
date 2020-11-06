@@ -18,4 +18,17 @@ public class TaskService {
 		return dao.findAll();
 	}
 
+	public void saveOrUpdate(Task obj) {
+		if (obj.getId() == null) {
+			dao.insert(obj);
+		}
+		else {
+			dao.update(obj);
+		}
+	}
+	
+	public void remove(Task obj) {
+		dao.delete(obj.getId());
+	}
+	
 }

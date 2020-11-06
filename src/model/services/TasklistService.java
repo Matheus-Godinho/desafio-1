@@ -17,5 +17,18 @@ public class TasklistService {
 	public List<Tasklist> findAll() {
 		return dao.findAll();
 	}
+	
+	public void saveOrUpdate(Tasklist obj) {
+		if (obj.getId() == null) {
+			dao.insert(obj);
+		}
+		else {
+			dao.update(obj);
+		}
+	}
+	
+	public void remove(Tasklist obj) {
+		dao.delete(obj.getId());
+	}
 
 }
