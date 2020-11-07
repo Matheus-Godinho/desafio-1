@@ -128,11 +128,9 @@ public class TaskDaoJDBC implements TaskDao {
 		
 		try {
 			ps = connection.prepareStatement(
-					"UPDATE task "
-					+ "SET Name = ?"
+					"DELETE FROM task "
 					+ "WHERE TasklistId = ?");
-			ps.setString(1, null);
-			ps.setInt(2, tasklist.getId());
+			ps.setInt(1, tasklist.getId());
 			ps.executeUpdate();
 		}
 		catch (SQLException e) {

@@ -3,12 +3,15 @@ package gui;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 import application.Main;
+import db.DbIntegrityException;
 import gui.listeners.DataChangeListener;
 import gui.util.Alerts;
 import gui.util.Utils;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -16,6 +19,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.Scene;
@@ -44,6 +49,10 @@ public class TasklistListController implements Initializable, DataChangeListener
 		private TableColumn<Tasklist, Integer> tableColumnId;
 		@FXML
 		private TableColumn<Tasklist, String> tableColumnType;
+		@FXML
+		private TableColumn<Tasklist, Tasklist> tableColumnEDIT;
+		@FXML
+		private TableColumn<Tasklist, Tasklist> tableColumnRESET;
 	
 	@FXML
 	public void onButtonNewAction(ActionEvent event) {
@@ -75,7 +84,8 @@ public class TasklistListController implements Initializable, DataChangeListener
 			dialogStage.showAndWait();
 		}
 		catch (IOException e) {
-			Alerts.showAlert("IO Exception", "Error in loading view", e.getMessage(), AlertType.ERROR);
+			Alerts.showAlert("IO Exception", "Error in loading view",
+					e.getMessage(), AlertType.ERROR);
 		}
 	}
 	
@@ -99,7 +109,7 @@ public class TasklistListController implements Initializable, DataChangeListener
 	
 	public void updateTableView() {
 		if (service == null)
-			Alerts.showAlert("Illegal State Exception", "Error updating table view",
+			Alerts.showAlert("Illegal State Exception", "Error in updating table view",
 					"Service was null", AlertType.ERROR);
 		else {
 			List<Tasklist> list;
@@ -107,7 +117,68 @@ public class TasklistListController implements Initializable, DataChangeListener
 			list = service.findAll();
 			obsList = FXCollections.observableArrayList(list);
 			tableViewTasklist.setItems(obsList);
+			initEditButtons();
+			initResetButtons();
 		}
 	}
+	
+	private void initEditButtons() {
+		tableColumnEDIT.setCellValueFactory(parameter -> new ReadOnlyObjectWrapper<>(parameter.getValue()));
+		tableColumnEDIT.setCellFactory(parameter -> new TableCell<Tasklist, Tasklist>() {
+			private final Button button = new Button("edit");
+
+			@Override
+			protected void updateItem(Tasklist obj, boolean empty) {
+				super.updateItem(obj, empty);
+				if (obj == null) {
+					setGraphic(null);
+					return;
+				}
+				setGraphic(button);
+				button.setOnAction(event -> createDialogForm(obj,
+						"/gui/TasklistForm.fxml", Utils.currentStage(event)));
+			}
+		});
+	}
+	
+	private void initResetButtons() {
+		tableColumnRESET.setCellValueFactory(parameter -> new ReadOnlyObjectWrapper<>(parameter.getValue()));
+		tableColumnRESET.setCellFactory(parameter -> new TableCell<Tasklist, Tasklist>() {
+			private final Button button = new Button("reset");
+
+			@Override
+			protected void updateItem(Tasklist obj, boolean empty) {
+				super.updateItem(obj, empty);
+				if (obj == null) {
+					setGraphic(null);
+					return;
+				}
+				setGraphic(button);
+				button.setOnAction(event -> resetEntity(obj));
+			}
+		});
+	}
+	private void resetEntity(Tasklist obj) {
+		Optional<ButtonType> result;
+		
+		result = Alerts.showConfirmation("Confirmation", "Are you sure to reset?");
+		if (result.get() == ButtonType.OK) {
+			if (service == null)
+				Alerts.showAlert("Illegal State Exception", "Error in removing object",
+						"Service was null", AlertType.ERROR);
+			try {
+				service.reset(obj);
+				result = Alerts.showConfirmation("Confirmation", "Are you sure to delete?");
+				if (result.get() == ButtonType.OK)
+					service.remove(obj);
+				updateTableView();
+			}
+			catch (DbIntegrityException e) {
+				Alerts.showAlert("Database Integrity Exception", "Error in removing object",
+						e.getMessage(), AlertType.ERROR);
+			}
+		}
+	}
+
 
 }
